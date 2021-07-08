@@ -13,7 +13,7 @@ user modules is:
 `$home\Documents\WindowsPowerShell\Modules\<Module Folder>\<Module Files>`
 
 You can then import the module during your Powershell session using the `Import-Module -Name "rktHVtools"` command.  You
-can also call this fromo your `$profile`
+can also call this from your `$profile`
 
 ## IMPORTANT
 
