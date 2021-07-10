@@ -7,7 +7,7 @@ Hyper-V environment.  All of the functions have been incorporated in the `rktHVT
 
 ## Usage
 
-You can use the functions individually or you can install the `rktHVTools.psm1` module.  The default directory for
+You can use the functions individually or you can install the `rktHVTools.psm1` module.  To install the module, just copy it to your modules folder.  The default directory for
 user modules is:
 
 `$home\Documents\WindowsPowerShell\Modules\<Module Folder>\<Module Files>`
@@ -15,9 +15,16 @@ user modules is:
 You can then import the module during your Powershell session using the `Import-Module -Name "rktHVtools"` command.  You
 can also call this from your `$profile`
 
-## IMPORTANT
+## Required
 
-Most of the functions rely on one or more Environment variables be set. **The following variables should be set prior to
+These functions are dependent on the Microsoft SC Virtual Machine Manager module.  The module should be loaded prior to running any of these functions.
+If not already loaded, type the following:
+
+```
+    Import-Module -Name "virtualmachinemanager"
+```
+
+Also, most of the functions rely on one or more Environment variables be set. **The following variables should be set prior to
 running any of the functions**:
 
 ```
