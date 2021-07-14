@@ -1,4 +1,4 @@
-function Get-HVCsvInfo {
+function Get-HVCsvClusterInfo {
 <#
 .SYNOPSIS
     Retrieve basic information of the Clustered Shared Volumes (CSVs) in a cluster.
@@ -8,11 +8,11 @@ function Get-HVCsvInfo {
 .PARAMETER ClusterName
     Specifies the name of the Hyper-V cluster containting the storage of interest. This parameter is mandatory.
 .INPUTS
-    System.String.  Get-HVCsvInfo accepts a string as the name of the cluster.
+    System.String.  Get-HVCsvClusterInfo accepts a string as the name of the cluster.
 .OUTPUTS
-    PSCustomObject. Get-HVCsvInfo returns the CSV name, capacity, used space, free space, and amount used percentage for each CSV in the cluster.
+    PSCustomObject. Get-HVCsvClusterInfo returns the CSV name, capacity, used space, free space, and amount used percentage for each CSV in the cluster.
 .EXAMPLE
-    PS C:\> Get-HVCsvInfo <myClusterName>
+    PS C:\> Get-HVCsvClusterInfo <myClusterName>
     Retrieves the capacity, used space, free space for each CSV in the cluster <myClusterName>.
 .NOTES
     The following Environment variable(s) must be set prior to running:
