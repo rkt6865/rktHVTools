@@ -37,7 +37,7 @@ running any of the functions**:
 
 - Connect-VMMServer - Connects to a user specified SC VMM Server
 - Get-HVClusterInfo - Retrieve memory and CPU infromation for each host in a cluster
-- Get-HVCSVInfo - Retrieve basic information for all of the CSVs in a Hyper-V compute cluster
+- Get-HVCsvClusterInfo - Retrieve basic information for all of the CSVs in a Hyper-V compute cluster
 - Get-HVHarddiskinfo - Retrieve hard disk information for each hard disk of a VM
 - Get-HVHostHardware - Retrieve manufacturer, model, memory, and CPUs for a physical Hyper-V host
 - Get-HVLldpInfo - Retrieve physical switch/port information for each interface of a Hyper-V host
