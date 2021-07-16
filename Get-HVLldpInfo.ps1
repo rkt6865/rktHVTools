@@ -53,7 +53,7 @@ function Get-HVLldpInfo {
             Write-Output "The Hyper-V host, $hostName, does not exit."
             break
         }
-        $nics = Get-SCVMHostNetworkAdapter -VMHost $hvHost | ? { ($_.Name -notlike "*NDIS*") -and ($_.Name -notlike "*USB*") }
+        $nics = Get-SCVMHostNetworkAdapter -VMHost $hvHost | ? { ($_.Name -notlike "*NDIS*") -or ($_.Name -notlike "*USB*") }
         $nicPropsArr = @()
         foreach ($nic in $nics) {
             if (! $nic.LldpInformation) {
