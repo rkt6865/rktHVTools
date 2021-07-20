@@ -41,9 +41,10 @@ function Get-HVCsvInfo {
     }
     
     process {
+        # The get-scstoragevolume will return a volume for each host in the cluster. Sorting with "-Unique" eliminates that
         $storVols = Get-SCStorageVolume -VMMServer $vmmServer | ? { $_.VolumeLabel -match $csvName } | sort storagevolumeid -Unique
         if (!$storVols) {
-            Write-Warning "There and no CSVs with that name."
+            Write-Warning "There are no CSVs with that name."
             return
         }
 
