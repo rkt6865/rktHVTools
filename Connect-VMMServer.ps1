@@ -41,14 +41,14 @@ function Connect-VMMServer {
 
         $vmm_username = $env:vmm_username
         $vmm_password = $env:vmm_password
-        $vmm_server = $env:vmm_server
+        $vmmserver = $env:vmm_server
 
         # Create SecureString object needed to create PSCredential object
         $secureString = ConvertTo-SecureString -AsPlainText -Force -String $vmm_password
         # Create PSCredential
         $creds = New-Object System.Management.Automation.PSCredential ($vmm_username, $secureString)
 
-        Get-SCVMMServer -ComputerName $vmm_server -Credential $creds
+        Get-SCVMMServer -ComputerName $vmmserver -Credential $creds
     }
     
     end {

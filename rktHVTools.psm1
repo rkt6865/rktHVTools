@@ -41,28 +41,27 @@ function Connect-VMMServer {
     
         $vmm_username = $env:vmm_username
         $vmm_password = $env:vmm_password
-        $vmm_server = $env:vmm_server
+        $vmmserver = $env:vmm_server
     
         # Create SecureString object needed to create PSCredential object
         $secureString = ConvertTo-SecureString -AsPlainText -Force -String $vmm_password
         # Create PSCredential
         $creds = New-Object System.Management.Automation.PSCredential ($vmm_username, $secureString)
     
-        Get-SCVMMServer -ComputerName $vmm_server -Credential $creds
+        Get-SCVMMServer -ComputerName $vmmserver -Credential $creds
     }
         
     end {
     }
-}    
+}  
 ###################################
 ###################################
-
 function Get-HVClusterInfo {
     <#
     .SYNOPSIS
         Get real time memory/CPU stats for each host in a cluster.
     .DESCRIPTION
-        Retrieve the amount of VMs, memory and CPU usage for each VMHost in a particular cluster.
+        Retrieve the number of VMs, memory and CPU usage for each VMHost in a particular cluster.
         The function is dependent on setting the $Env:vmm_server environment variable.  See Notes below.
     .PARAMETER ClusterName
         Specifies the name of the cluster of interest. This parameter is mandatory.
@@ -97,11 +96,11 @@ function Get-HVClusterInfo {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
         
     process {
-        $clstr = Get-SCVMHostCluster -VMMServer $vmm_server -Name $clusterName -ErrorAction Stop
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction Stop
         if (!$clstr) {
             Write-Warning "The cluster, $clusterName, could not found!"
             return
@@ -130,7 +129,7 @@ function Get-HVClusterInfo {
         
     end {
     }
-}
+}   
 ###################################
 ###################################
 function Get-HVCsvClusterInfo {
@@ -153,7 +152,7 @@ function Get-HVCsvClusterInfo {
         The following Environment variable(s) must be set prior to running:
             $Env:vmm_server = <server>
     #>
-        
+    
     [CmdletBinding()]
     param (
         [Parameter(
@@ -172,11 +171,11 @@ function Get-HVCsvClusterInfo {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
         
     process {
-        $clstr = Get-SCVMHostCluster -VMMServer $vmm_server -Name $clusterName -ErrorAction Stop
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction Stop
         if (!$clstr) {
             Write-Warning "The cluster, $clusterName, could not found!"
             return
@@ -243,17 +242,17 @@ function Get-HVHarddiskInfo {
             break
         }
     
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
         
     process {
-        $vm = Get-SCVirtualMachine -VMMServer $vmm_server $vmname
+        $vm = Get-SCVirtualMachine -VMMServer $vmmserver $vmname
         if (!$vm) {
             Write-Warning "The VM, $vmname, could not be found."
             return
         }
     
-        $vDiskDrives = Get-SCVirtualDiskDrive -VMMServer $vmm_server -VM $vm
+        $vDiskDrives = Get-SCVirtualDiskDrive -VMMServer $vmmserver -VM $vm
         foreach ($vDiskDrive in $vDiskDrives) {
             $busType = $vDiskDrive.BusType
             $bus = $vDiskDrive.Bus
@@ -278,27 +277,27 @@ function Get-HVHarddiskInfo {
             
     end {
     }
-}
+}    
 ###################################
 ###################################
 function Get-HVHostHardware {
     <#
-    .SYNOPSIS
-        Retrieve hardware information of a Hyper-V host.
-    .DESCRIPTION
-        Retrieves the name, manufacturer, model, memory and CPUs for a Hyper-V host.
-    .PARAMETER hostName
-        Specifies the name of the Hyper-v host. This parameter is mandatory.
-    .INPUTS
-        System.String.  Get-HVHostHardware accepts a string as the name of the Hyper-V host.
-    .OUTPUTS
-        PSCustomObject. Get-HVHostHardware returns the name, manufacturer, model, memory, CPU sockets, and total CPUs.
-    .EXAMPLE
-        PS C:\> Get-HVHostHardware <myVMHostName>
-        Retrieves the hardware information of the Hyper-V host <myVMHostName>.
-    .NOTES
-        None.
-    #>
+.SYNOPSIS
+    Retrieve hardware information of a Hyper-V host.
+.DESCRIPTION
+    Retrieves the name, manufacturer, model, memory and CPUs for a Hyper-V host.
+.PARAMETER hostName
+    Specifies the name of the Hyper-v host. This parameter is mandatory.
+.INPUTS
+    System.String.  Get-HVHostHardware accepts a string as the name of the Hyper-V host.
+.OUTPUTS
+    PSCustomObject. Get-HVHostHardware returns the name, cluster, manufacturer, model, memory, CPU sockets, and total CPUs.
+.EXAMPLE
+    PS C:\> Get-HVHostHardware <myVMHostName>
+    Retrieves the hardware information of the Hyper-V host <myVMHostName>.
+.NOTES
+    None.
+#>
     [CmdletBinding()]
     param (
         [Parameter(
@@ -306,23 +305,35 @@ function Get-HVHostHardware {
             Mandatory = $true, 
             ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
-            HelpMessage = 'Enter the host name.')
+            HelpMessage = 'Please enter a host name.')
         ]
         [String] $hostName
     )
-        
+    
     begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Host "The following Environment variable needs to be set prior to running the script:" -ForegroundColor Yellow
+            Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
+            break
+        }
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
-        
+    
     process {
+        $vHost = Get-SCVMHost -VMMServer $vmmserver -ComputerName $hostName -ErrorAction SilentlyContinue
+        if (!$vHost) {
+            Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
+            break
+        }
         $sys = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $hostName -ErrorAction SilentlyContinue
         if ($sys -eq $null) {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
             break
         }
-    
+
         $hshSysProperties = [ordered]@{
             Name         = $sys.Name
+            Cluster      = ($vHost.HostCluster.Name).Split(".")[0]
             Manufacturer = $sys.Manufacturer
             Model        = $sys.Model
             Mem          = [math]::Round($sys.TotalPhysicalMemory / 1gb, 0)
@@ -330,9 +341,9 @@ function Get-HVHostHardware {
             TotProcs     = $sys.NumberOfLogicalProcessors
         }
         New-Object -type PSCustomObject -Property $hshSysProperties
-    
+
     }
-        
+    
     end {
     }
 }
@@ -384,11 +395,11 @@ function Get-HVLldpInfo {
             break
         }
     
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
         
     process {
-        $hvHost = Get-SCVMHost -VMMServer $vmm_server -ComputerName $hostName -ErrorAction SilentlyContinue
+        $hvHost = Get-SCVMHost -VMMServer $vmmserver -ComputerName $hostName -ErrorAction SilentlyContinue
         if (! $hvHost) {
             Write-Output "The Hyper-V host, $hostName, does not exit."
             break
@@ -425,6 +436,7 @@ function Get-HVLldpInfo {
             
     }
 }
+    
 ###################################
 ###################################
 function Get-HVWWN {
@@ -609,7 +621,7 @@ function Get-HVVmsOnCsv {
         foreach ($vm in $vms) {
             $hshVMProps = [ordered]@{
                 Name     = $vm.Name
-                RAM      = [math]::Round($vm.Memory/1KB,0)
+                RAM      = [math]::Round($vm.Memory / 1KB, 0)
                 Size     = [math]::Round($vm.TotalSize / 1GB, 2)
                 Location = $vm.Location
             }

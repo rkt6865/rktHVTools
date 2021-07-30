@@ -37,11 +37,11 @@ function Get-HVVmsOnCsv {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmmServer = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $vms = Get-SCVirtualMachine | ? { $_.location -match $csvName } #| select name, @{N="Size";E={[math]::round(($_.TotalSize/1GB),2)}}, location | sort size -Descending
+        $vms = Get-SCVirtualMachine -VMMServer $vmmserver | ? { $_.location -match $csvName } #| select name, @{N="Size";E={[math]::round(($_.TotalSize/1GB),2)}}, location | sort size -Descending
         if (!$vms) {
             Write-Warning "There are no VMs on the CSV or there are no CSVs with that name."
             return

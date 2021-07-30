@@ -44,11 +44,11 @@ function Get-HVLldpInfo {
             break
         }
 
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $hvHost = Get-SCVMHost -VMMServer $vmm_server -ComputerName $hostName -ErrorAction SilentlyContinue
+        $hvHost = Get-SCVMHost -VMMServer $vmmserver -ComputerName $hostName -ErrorAction SilentlyContinue
         if (! $hvHost) {
             Write-Output "The Hyper-V host, $hostName, does not exit."
             break

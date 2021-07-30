@@ -40,17 +40,17 @@ function Get-HVHarddiskInfo {
             break
         }
 
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $vm = Get-SCVirtualMachine -VMMServer $vmm_server $vmname
+        $vm = Get-SCVirtualMachine -VMMServer $vmmserver $vmname
         if (!$vm) {
             Write-Warning "The VM, $vmname, could not be found."
             return
         }
 
-        $vDiskDrives = Get-SCVirtualDiskDrive -VMMServer $vmm_server -VM $vm
+        $vDiskDrives = Get-SCVirtualDiskDrive -VMMServer $vmmserver -VM $vm
         foreach ($vDiskDrive in $vDiskDrives) {
             $busType = $vDiskDrive.BusType
             $bus = $vDiskDrive.Bus

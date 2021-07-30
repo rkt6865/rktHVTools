@@ -37,11 +37,11 @@ function Get-HVCsvClusterInfo {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $clstr = Get-SCVMHostCluster -VMMServer $vmm_server -Name $clusterName -ErrorAction Stop
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction Stop
         if (!$clstr) {
             Write-Warning "The cluster, $clusterName, could not found!"
             return

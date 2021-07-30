@@ -3,7 +3,7 @@ function Get-HVClusterInfo {
 .SYNOPSIS
     Get real time memory/CPU stats for each host in a cluster.
 .DESCRIPTION
-    Retrieve the amount of VMs, memory and CPU usage for each VMHost in a particular cluster.
+    Retrieve the number of VMs, memory and CPU usage for each VMHost in a particular cluster.
     The function is dependent on setting the $Env:vmm_server environment variable.  See Notes below.
 .PARAMETER ClusterName
     Specifies the name of the cluster of interest. This parameter is mandatory.
@@ -38,11 +38,11 @@ function Get-HVClusterInfo {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmm_server = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $clstr = Get-SCVMHostCluster -VMMServer $vmm_server -Name $clusterName -ErrorAction Stop
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction Stop
         if (!$clstr) {
             Write-Warning "The cluster, $clusterName, could not found!"
             return

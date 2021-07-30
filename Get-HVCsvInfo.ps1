@@ -37,7 +37,7 @@ function Get-HVCsvInfo {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmmServer = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
