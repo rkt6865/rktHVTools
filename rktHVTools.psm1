@@ -326,6 +326,7 @@ function Get-HVHostHardware {
             break
         }
         $sys = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $hostName -ErrorAction SilentlyContinue
+        $sn = (Get-CimInstance -ClassName Win32_bios -ComputerName $hostName).SerialNumber
         if ($sys -eq $null) {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
             break
@@ -336,6 +337,7 @@ function Get-HVHostHardware {
             Cluster      = ($vHost.HostCluster.Name).Split(".")[0]
             Manufacturer = $sys.Manufacturer
             Model        = $sys.Model
+            SerialNo     = $sn
             Mem          = [math]::Round($sys.TotalPhysicalMemory / 1gb, 0)
             Sockets      = $sys.NumberOfProcessors
             TotProcs     = $sys.NumberOfLogicalProcessors
