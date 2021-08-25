@@ -43,12 +43,16 @@ function Get-HVHostHardware {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
             break
         }
-        $sys = Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $hostName -ErrorAction SilentlyContinue
-        $sn = (Get-CimInstance -ClassName Win32_bios -ComputerName $hostName).SerialNumber
-        if ($sys -eq $null) {
+        $cimSession = New-CimSession -ComputerName $hostName
+        if ($cimSession -eq $null) {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
             break
         }
+        $sys = Get-CimInstance -ClassName Win32_ComputerSystem -CimSession $cimSession -Property Manufacturer, Model, TotalPhysicalMemory
+        $sn = (Get-CimInstance -ClassName Win32_bios -CimSession $cimSession).SerialNumber
+        $proc = Get-CimInstance -ClassName Win32_Processor -CimSession $cimSession
+
+        Remove-CimSession -CimSession $cimSession
 
         $hshSysProperties = [ordered]@{
             Name         = $sys.Name
@@ -57,8 +61,10 @@ function Get-HVHostHardware {
             Model        = $sys.Model
             SerialNo     = $sn
             Mem          = [math]::Round($sys.TotalPhysicalMemory / 1gb, 0)
-            Sockets      = $sys.NumberOfProcessors
-            TotProcs     = $sys.NumberOfLogicalProcessors
+            Sockets      = $proc.Count
+            Cores        = $proc[0].NumberOfCores
+            TotProcs     = ($proc.Count) * ($proc[0].NumberOfLogicalProcessors)
+            Processor    = $proc[0].Name
         }
         New-Object -type PSCustomObject -Property $hshSysProperties
 
