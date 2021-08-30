@@ -44,19 +44,24 @@ function Get-HVHostHardware {
             break
         }
         $cimSession = New-CimSession -ComputerName $hostName
-        if ($cimSession -eq $null) {
+        if (!$cimSession) {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
             break
         }
         $sys = Get-CimInstance -ClassName Win32_ComputerSystem -CimSession $cimSession -Property Manufacturer, Model, TotalPhysicalMemory
         $sn = (Get-CimInstance -ClassName Win32_bios -CimSession $cimSession).SerialNumber
         $proc = Get-CimInstance -ClassName Win32_Processor -CimSession $cimSession
-
         Remove-CimSession -CimSession $cimSession
 
+        # Check is host is part of cluster - this avoides potential error when creating hashtable
+        if ($vhost.HostCluster) {
+            $clusterName = ($vHost.HostCluster.Name).Split(".")[0]
+        } else {
+            $clusterName = "N/A"
+        }
         $hshSysProperties = [ordered]@{
             Name         = $sys.Name
-            Cluster      = ($vHost.HostCluster.Name).Split(".")[0]
+            Cluster      = $clusterName
             Manufacturer = $sys.Manufacturer
             Model        = $sys.Model
             SerialNo     = $sn
