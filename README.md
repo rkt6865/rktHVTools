@@ -43,4 +43,6 @@ running any of the functions**:
 - Get-HVLldpInfo - Retrieve physical switch/port information for each interface of a Hyper-V host
 - Get-HVWWN - Retrieve WWN information for each HBA of a Hyper-V host
 - Get-HVCsvInfo - Retrieve basic information for a specific CSVs anywhere within the VMM
-- Get-HVVmsOnCsv - Retrieve VMs located on a specific CSV.
+- Get-HVVmsOnCsv - Retrieve VMs located on a specific CSV
+- Get-HVVMInfo - Retrieve basic VM resource information (CPUs, Memory, HD size)
+- Get-HVHostNicInfo - Retrieve physical NIC information of a Hyper-V Host
