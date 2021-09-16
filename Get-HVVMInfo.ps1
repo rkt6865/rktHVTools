@@ -51,8 +51,10 @@ function Get-HVVMInfo {
         $hDisks = Get-SCVirtualHardDisk -VM $vm
         $hshVMProps = [ordered]@{
             Name     = $vm.Name
+            Host     = $vm.vmhost.name.split(".")[0]
+            Cluster  = $vm.vmhost.HostCluster.Name.split(".")[0]
             CPU      = $vm.CPUCount
-            MemGB   = [math]::Round($vm.Memory / 1KB, 0)
+            MemGB    = [math]::Round($vm.Memory / 1KB, 0)
             Size     = [math]::Round($vm.TotalSize / 1GB, 2)
             HDSizeGB = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
             Location = $vm.Location
