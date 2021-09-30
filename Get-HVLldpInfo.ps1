@@ -12,7 +12,7 @@ function Get-HVLldpInfo {
 .INPUTS
     System.String.  Get-HVLldpInfo accepts a string as the name of the Hyper-V host.
 .OUTPUTS
-    PSCustomObject. Get-HVLldpInfo returns the host name, MAC, connection state, speed, physical switch name, physical port and description.
+    PSCustomObject. Get-HVLldpInfo returns the host name, MAC, connection state, speed, physical switch name, and physical port.
 .EXAMPLE
     PS C:\> Get-HVLldpInfo <myVMHostName>
     Retrieves the physical switch and port information for each interface of the Hyper-V host <myVMHostName>.
@@ -71,7 +71,7 @@ function Get-HVLldpInfo {
                 MaxSpeed   = $nic.MaxBandwidth
                 pSwitch    = $nic.LldpInformation.SystemName
                 pPort      = $nic.LldpInformation.PortId
-                Desc       = $nic.LldpInformation.PortDescription
+                #Desc       = $nic.LldpInformation.PortDescription
                 lastUpdate = $nic.LldpInformation.UpdatedTimestamp
             }
             #$nicPropsArr += New-Object -type PSCustomObject -Property $hshNicProps
