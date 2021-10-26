@@ -47,12 +47,13 @@ function Get-HVHostNicInfo {
         Remove-CimSession -CimSession $cimSession
         foreach ($nic in $nics) {
             $hshNICProperties = [ordered]@{
-                Name      = $hostName
-                NIC       = $nic.Name
-                NICDesc     = $nic.InterfaceDescription
-                MAC  = $nic.MacAddress
-                Speed       = $nic.LinkSpeed
-                Status   = $nic.Status
+                Name    = $hostName
+                NIC     = $nic.Name
+                NICDesc = $nic.InterfaceDescription
+                MAC     = $nic.MacAddress
+                MTU     = $nic.MtuSize
+                Speed   = $nic.LinkSpeed
+                Status  = $nic.Status
             }
             New-Object -type PSCustomObject -Property $hshNICProperties
 
