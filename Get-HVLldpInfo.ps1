@@ -1,5 +1,5 @@
 function Get-HVLldpInfo {
-<#
+    <#
 .SYNOPSIS
     Retrieve physical switch and port information for each interface of a Hyper-V host.
 .DESCRIPTION
@@ -22,7 +22,7 @@ function Get-HVLldpInfo {
 .NOTES
     If the interface returns no information, try applying the -Refresh switch.  This will reach out to the switch to gather the information.
 #>
-[CmdletBinding()]
+    [CmdletBinding()]
     param (
         [Parameter(
             Position = 0, 
@@ -66,12 +66,13 @@ function Get-HVLldpInfo {
             }
             $hshNicProps = [ordered]@{
                 Host       = $hvHost.Name.Split(".")[0]
+                Cluster    = $hvhost.HostCluster.Name.Split(".")[0]
                 MAC        = $nic.MacAddress
                 State      = $nic.ConnectionState
                 MaxSpeed   = $nic.MaxBandwidth
                 pSwitch    = $nic.LldpInformation.SystemName
                 pPort      = $nic.LldpInformation.PortId
-                #Desc       = $nic.LldpInformation.PortDescription
+                Desc       = $nic.LldpInformation.PortDescription
                 lastUpdate = $nic.LldpInformation.UpdatedTimestamp
             }
             #$nicPropsArr += New-Object -type PSCustomObject -Property $hshNicProps
