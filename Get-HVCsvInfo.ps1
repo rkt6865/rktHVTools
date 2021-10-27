@@ -1,5 +1,5 @@
 function Get-HVCsvInfo {
-<#
+    <#
 .SYNOPSIS
     Retrieve basic information of a specific Cluster Shared Volume (CSV) contained within the VMM.
 .DESCRIPTION
@@ -19,7 +19,7 @@ function Get-HVCsvInfo {
         $Env:vmm_server = <server>
 #>
 
-[CmdletBinding()]
+    [CmdletBinding()]
     param (
         [Parameter(
             Position = 0, 
@@ -41,28 +41,30 @@ function Get-HVCsvInfo {
     }
     
     process {
-        # The get-scstoragevolume will return a volume for each host in the cluster. Sorting with "-Unique" eliminates that
+        # The get-scstoragevolume will return the volume for each host in the cluster. Sorting with "-Unique" eliminates that
         $storVols = Get-SCStorageVolume -VMMServer $vmmServer | ? { $_.VolumeLabel -match $csvName } | sort storagevolumeid -Unique
         if (!$storVols) {
             Write-Warning "There are no CSVs with that name."
             return
         }
+        # (Get-ClusterSharedVolume -Cluster $storvols.vmhost.hostcluster | ? {$_.name -eq $storvols.volumelabel}).OwnerNode.name
 
         foreach ($storVol in $storVols) {
             $used = ($storVol.Capacity / 1GB) - ($storVol.FreeSpace / 1GB)
             $usedPct = ($used / ($storVol.Capacity / 1GB))
             $hshStorVolProps = [ordered]@{
-                Name      = $storVol.VolumeLabel
-                Cluster   = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
-                Capacity  = [math]::Round($storVol.Capacity / 1GB, 2)
-                Used      = [math]::round($used, 2)
-                Free      = [math]::Round($storVol.Freespace / 1GB, 2)
-                UsedPct   = "{0:P0}" -f [math]::round($usedPct, 2)
-                LUNId     = $storVol.StorageDisk.SMLunId
+                Name     = $storVol.VolumeLabel
+                Cluster  = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
+                Owner    = (Get-ClusterSharedVolume -Cluster $storVol.vmhost.hostcluster | ? {$_.name -eq $storvol.volumelabel}).OwnerNode.name
+                Capacity = [math]::Round($storVol.Capacity / 1GB, 2)
+                Used     = [math]::round($used, 2)
+                Free     = [math]::Round($storVol.Freespace / 1GB, 2)
+                UsedPct  = "{0:P0}" -f [math]::round($usedPct, 2)
+                LUNId    = $storVol.StorageDisk.SMLunId
             }
             New-Object -type PSCustomObject -Property $hshStorVolProps
         }
-            }
+    }
     
     end {
     }

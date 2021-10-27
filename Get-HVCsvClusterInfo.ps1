@@ -1,5 +1,5 @@
 function Get-HVCsvClusterInfo {
-<#
+    <#
 .SYNOPSIS
     Retrieve basic information of the Clustered Shared Volumes (CSVs) in a cluster.
 .DESCRIPTION
@@ -19,7 +19,7 @@ function Get-HVCsvClusterInfo {
         $Env:vmm_server = <server>
 #>
 
-[CmdletBinding()]
+    [CmdletBinding()]
     param (
         [Parameter(
             Position = 0, 
@@ -41,20 +41,22 @@ function Get-HVCsvClusterInfo {
     }
     
     process {
-        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction Stop
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction SilentlyContinue
         if (!$clstr) {
             Write-Warning "The cluster, $clusterName, could not found!"
             return
         }
-        $csvs = $clstr.SharedVolumes | sort name
+        $csvs = Get-ClusterSharedVolume -Cluster $clstr
         foreach ($csv in $csvs) {
-            $used = ($csv.Capacity / 1GB) - ($csv.FreeSpace / 1GB)
-            $usedPct = ($used / ($csv.Capacity / 1GB))
+            $partitionInfo = $csv.SharedVolumeInfo[0].Partition
+            $used = ($partitionInfo.Size / 1GB) - ($partitionInfo.FreeSpace / 1GB)
+            $usedPct = ($used / ($partitionInfo.Size / 1GB))
             $hshCsvProps = [ordered]@{
-                Name     = $csv.VolumeLabel
-                Capacity = [math]::Round($csv.Capacity / 1GB, 2)
+                Name     = $csv.Name
+                Owner    = $csv.OwnerNode.Name
+                Capacity = [math]::Round($partitionInfo.Size / 1GB, 2)
                 Used     = [math]::round($used, 2)
-                Free     = [math]::Round($csv.Freespace / 1GB, 2)
+                Free     = [math]::Round($partitionInfo.Freespace / 1GB, 2)
                 UsedPct  = "{0:P0}" -f [math]::round($usedPct, 2)
             }
             New-Object -type PSCustomObject -Property $hshCsvProps
@@ -64,4 +66,3 @@ function Get-HVCsvClusterInfo {
     end {
     }
 }
-
