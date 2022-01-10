@@ -48,3 +48,4 @@ NOTE: the `$Env:vmm_server` is also set automatically if you run the **Connect-V
 - Get-HVVMInfo - Retrieve basic VM resource information (CPUs, Memory, HD size)
 - Get-HVHostNicInfo - Retrieve physical NIC information of a Hyper-V Host
 - Get-HVClusterVMs - Retrieve all VMs in a particular cluster
+- Get-HVHostLldpinfo - Retrieve physical switch/port/(faster)connection status information for each interface of a Hyper-V host
