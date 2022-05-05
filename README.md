@@ -32,7 +32,7 @@ running any of the functions**:
     $Env:vmm_password = <password>
     $Env:vmm_server = <server>
 ```
-NOTE: the `$Env:vmm_server` is also set automatically if you run the **Connect-VMMServer &lt;vmm_server&gt;**
+NOTE: If these are not set, they will be set automatically if/when you run the **Connect-VMMServer &lt;vmm_server&gt;** function.
 
 ## List of functions
 

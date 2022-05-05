@@ -18,7 +18,7 @@ function Connect-VMMServer {
         PS C:\> $VMMServer = Connect-VMMServer <vmm_server>
         Create a variable containing the VMM server connetion.
     .NOTES
-        The following Environment variable(s) must be set prior to running:
+        The following Environment variable(s) will be used if configured:
             $Env:vmm_username = <username>
             $Env:vmm_password = <password>
     #>
@@ -39,17 +39,16 @@ function Connect-VMMServer {
     }
     
     process {
-        # Check if username/password Environment variables have been set
+        # Check if username/password Environment variables have been set.  If not, prompt for creds.
         if (!(Test-Path Env:\vmm_username) -or !(Test-Path Env:\vmm_password)) {
-            Write-Host "The following Environment variables need to be set prior to connect to the VMM server" -ForegroundColor Yellow
-            Write-Host "`$Env:vmm_username = <username>" -ForegroundColor Yellow
-            Write-Host "`$Env:vmm_password = <password>" -ForegroundColor Yellow
-            break
+            $creds = Get-Credential -Message "Please enter Domain credentials for $vmm_server"
+            $vmm_username = $creds.GetNetworkCredential().username
+            $vmm_password = $creds.GetNetworkCredential().password
         }
-    
-        # Create local variables from Environment variables
-        $vmm_username = $env:vmm_username
-        $vmm_password = $env:vmm_password
+        else {
+            $vmm_username = $Env:vmm_username
+            $vmm_password = $Env:vmm_password
+        }
     
         # Create SecureString object needed to create PSCredential object
         $secureString = ConvertTo-SecureString -AsPlainText -Force -String $vmm_password
@@ -61,9 +60,14 @@ function Connect-VMMServer {
         # Attempt to create a connection to the VMM server
         $vmmServer = Get-SCVMMServer -ComputerName $vmm_server -Credential $creds
         if (!$vmmServer) {
-            Write-Warning "There was an issue. Please verify that the VMM server name, <$vmm_server>, is correct."
+            Write-Warning "There was an issue. Please verify that the VMM server name, <$vmm_server>, and your credentials are correct."
             break
         }
+    
+        # Save credentials to an environment variable for possible later use.
+        Set-Item ENV:vmm_username $vmm_username
+        Set-Item ENV:vmm_password $vmm_password
+
         # Save $vmm_server to an environment variable for use it other scripts which require it
         Set-Item ENV:vmm_server $vmm_server
         return $vmmServer
