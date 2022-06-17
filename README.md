@@ -51,3 +51,4 @@ NOTE: If these are not set, they will be set automatically if/when you run the *
 - Get-HVHostLldpinfo - Retrieve physical switch/port/(faster)connection status information for each interface of a Hyper-V host
 - Get-HVHostStoragePaths - Retrieve available storage paths for each CSV of a Hyper-V host
 - Get-HVHostStoragePathTotals - Retrieve the total number of storage devices and paths of a Hyper-V host
+- Get-HVHostLastBootUpTime - Retrieve the time a Hyper-V host last rebooted
