@@ -53,3 +53,4 @@ NOTE: If these are not set, they will be set automatically if/when you run the *
 - Get-HVHostStoragePathTotals - Retrieve the total number of storage devices and paths of a Hyper-V host
 - Get-HVHostLastBootUpTime - Retrieve the time a Hyper-V host last rebooted
 - Get-HVHostMPIOSettings - Retrieve the MPIO settings of a Hyper-V host
+- Get-HVHostNicStats - Retrieve the network packet errors/discards for each physical NIC of a Hyper-V host
