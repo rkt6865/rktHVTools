@@ -49,6 +49,7 @@ function Get-HVHostNicStats {
 
             $hshNICStatsProperties = [ordered]@{
                 Name                     = $hostName.Split(".")[0]
+                Date                     = Get-Date -format "yyyy-MM-dd HH:mm:ss"
                 NIC                      = $nicStats.Name
                 MAC                      = $nic.MacAddress
                 Connection               = $nic.MediaConnectionState
