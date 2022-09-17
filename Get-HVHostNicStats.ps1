@@ -38,6 +38,18 @@ function Get-HVHostNicStats {
     }
     
     process {
+        $vHost = Get-SCVMHost -VMMServer $vmmserver -ComputerName $hostName -ErrorAction SilentlyContinue
+        if (!$vHost) {
+            Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
+            break
+        }
+        # Check is host is part of cluster - this avoides potential error when creating hashtable
+        if ($vhost.HostCluster) {
+            $clusterName = ($vHost.HostCluster.Name).Split(".")[0]
+        }
+        else {
+            $clusterName = "N/A"
+        }
         $cimSession = New-CimSession -ComputerName $hostName
         if (!$cimSession) {
             Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
@@ -49,6 +61,7 @@ function Get-HVHostNicStats {
 
             $hshNICStatsProperties = [ordered]@{
                 Name                     = $hostName.Split(".")[0]
+                Cluster                  = $clusterName
                 Date                     = Get-Date -format "yyyy-MM-dd HH:mm:ss"
                 NIC                      = $nicStats.Name
                 MAC                      = $nic.MacAddress
