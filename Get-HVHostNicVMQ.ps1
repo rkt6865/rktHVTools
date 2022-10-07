@@ -62,7 +62,7 @@ function Get-HVHostNicVMQ {
             $hshNICStatsProperties = [ordered]@{
                 Name             = $nic.PSComputerName
                 Cluster          = $clusterName
-                NIC              = $nicStats.Name
+                NIC              = $nic.Name
                 MAC              = $nic.MacAddress
                 Connection       = $nic.MediaConnectionState
                 Status           = $nic.Status
