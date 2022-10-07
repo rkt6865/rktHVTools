@@ -1350,7 +1350,7 @@ function Get-HVHostNicStats {
             $nicStats = Get-NetAdapterStatistics -CimSession $cimSession -Name $nic.Name
 
             $hshNICStatsProperties = [ordered]@{
-                Name                     = $hostName.Split(".")[0]
+                Name                     = $nic.PSComputerName
                 Cluster                  = $clusterName
                 Date                     = Get-Date -format "yyyy-MM-dd HH:mm:ss"
                 NIC                      = $nicStats.Name
@@ -1361,6 +1361,7 @@ function Get-HVHostNicStats {
                 OutboundPacketErrors     = $nicStats.OutboundPacketErrors
                 ReceivedDiscardedPackets = $nicStats.ReceivedDiscardedPackets
                 OutboundDiscardedPackets = $nicStats.OutboundDiscardedPackets
+                Description              = $nic.InterfaceDescription
             }
             New-Object -type PSCustomObject -Property $hshNICStatsProperties
         }
