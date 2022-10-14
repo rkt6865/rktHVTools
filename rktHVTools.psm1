@@ -442,24 +442,43 @@ function Get-HVLldpInfo {
             Write-Output "The Hyper-V host, $hostName, does not exit."
             break
         }
+        # Check is host is part of cluster - this avoides potential error when creating hashtable
+        if ($vhost.HostCluster) {
+            $clusterName = ($vHost.HostCluster.Name).Split(".")[0]
+        }
+        else {
+            $clusterName = "N/A"
+        }
+        if ($Refresh) {
+            Write-Host "Refreshing LLDP information for all connected adapters.  This will take a momemnt." -ForegroundColor Yellow
+        }
         $nics = Get-SCVMHostNetworkAdapter -VMHost $hvHost | ? { ($_.Name -notlike "*NDIS*") -or ($_.Name -notlike "*USB*") }
         $nicPropsArr = @()
         foreach ($nic in $nics) {
-            if (! $nic.LldpInformation) {
-                if ($Refresh) {
-                    if ($nic.ConnectionState -eq "Connected") {
-                        Write-Output "Refreshing LLDP information for $($nic.ConnectionName). Please wait... (TEMP)"
-                        Set-SCVMHostNetworkAdapter -VMHostNetworkAdapter $nic -RefreshLldp | Out-Null
-                    }
+            $err = ""
+            #if (! $nic.LldpInformation) {
+            if ($Refresh) {
+                if ($nic.ConnectionState -eq "Connected") {
+                    #Write-Output "Refreshing LLDP information for $($nic.ConnectionName). Please wait... (TEMP)"
+                    Set-SCVMHostNetworkAdapter -VMHostNetworkAdapter $nic -RefreshLldp -ErrorAction SilentlyContinue -ErrorVariable err | Out-Null
                 }
             }
+            #}
+            if ($err) {
+                $pSwitchVal = "Failed to fetch LLDP information"
+            }
+            else {
+                $pSwitchVal = $nic.LldpInformation.SystemName
+            }
+
             $hshNicProps = [ordered]@{
                 Host       = $hvHost.Name.Split(".")[0]
-                Cluster    = $hvhost.HostCluster.Name.Split(".")[0]
+                Cluster    = $clusterName
+                NIC        = $nic.ConnectionName
                 MAC        = $nic.MacAddress
                 State      = $nic.ConnectionState
                 MaxSpeed   = $nic.MaxBandwidth
-                pSwitch    = $nic.LldpInformation.SystemName
+                pSwitch    = $pSwitchVal
                 pPort      = $nic.LldpInformation.PortId
                 Desc       = $nic.LldpInformation.PortDescription
                 lastUpdate = $nic.LldpInformation.UpdatedTimestamp
