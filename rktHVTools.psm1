@@ -443,8 +443,8 @@ function Get-HVLldpInfo {
             break
         }
         # Check is host is part of cluster - this avoides potential error when creating hashtable
-        if ($vhost.HostCluster) {
-            $clusterName = ($vHost.HostCluster.Name).Split(".")[0]
+        if ($hvHost.HostCluster) {
+            $clusterName = ($hvHost.HostCluster.Name).Split(".")[0]
         }
         else {
             $clusterName = "N/A"
