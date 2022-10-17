@@ -8,6 +8,8 @@ function Get-HVHostLldpInfo {
     directly from the host (much quicker than waiting on the VMM to refresh).
 .PARAMETER hostName
     Specifies the name of the Hyper-v host. This parameter is mandatory.
+.PARAMETER Refresh
+    Refresh the LLDP information for the interface. Optional.
 .INPUTS
     System.String.  Get-HVHostLldpInfo accepts a string as the name of the Hyper-V host.
 .OUTPUTS
@@ -15,6 +17,9 @@ function Get-HVHostLldpInfo {
 .EXAMPLE
     PS C:\> Get-HVHostLldpInfo <myVMHostName>
     Retrieves the physical switch and port information for each interface of the Hyper-V host <myVMHostName>.
+.EXAMPLE
+    PS C:\> Get-HVHostLldpInfo -Refresh <myVMHostName>
+    Retrieves the physical switch/port information after first retrieving the information from the physical switch.
 .NOTES
     The following Environment variable(s) must be set prior to running:
         $Env:vmm_server = <server>
@@ -28,7 +33,10 @@ function Get-HVHostLldpInfo {
             ValueFromPipelineByPropertyName = $true,
             HelpMessage = 'Please enter the name of the Hyper-V host.')
         ]
-        [String] $hostName
+        [String] $hostName,
+        [Parameter(Mandatory = $false)]
+        [Switch]
+        $Refresh
     )
     
     begin {
@@ -42,7 +50,11 @@ function Get-HVHostLldpInfo {
     }
     
     process {
-        $vmmNics = Get-HVLldpInfo -hostName $hostName
+        if ($Refresh) {
+            $vmmNics = Get-HVLldpInfo -hostName $hostName -Refresh
+        }else {
+            $vmmNics = Get-HVLldpInfo -hostName $hostName
+        }
         $cimNics = Get-HVHostNicInfo -hostName $hostName
         
         foreach ($cimNic in $cimNics) {
