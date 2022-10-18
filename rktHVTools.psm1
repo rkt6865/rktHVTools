@@ -1620,6 +1620,7 @@ function Get-HVNetworkVlans {
         $subnets = $networkDef.SubnetVLans
         foreach ($subnet in $subnets) {
             $hshSubnetProperties = [ordered]@{
+                LogicalNetwork = $networkDef.LogicalNetwork
                 Subnet = $subnet.Subnet
                 VLANID = $subnet.VLanID
             }
