@@ -56,3 +56,4 @@ NOTE: If these are not set, they will be set automatically if/when you run the *
 - Get-HVHostNicStats - Retrieve the network packet errors/discards for each physical NIC of a Hyper-V host
 - Get-HVHostNicDrivers - Retrieve the NIC driver details for each physical NIC of a Hyper-V host
 - Get-HVHostNicVMQ - Retrieve the VMQ status (enabled/disabled) of a physical NIC of a Hyper-V host
+- Get-HVNetworkVlans - Retrieve the network names and VLANs of a Hyper-V Logical Network
