@@ -341,6 +341,21 @@ function Get-HVHostHardware {
             break
         }
         $vmmserver = Get-SCVMMServer $Env:vmm_server
+
+        function ExpressServiceCode {
+            param ([string]$serviceTag)
+            $Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            $ca = $ServiceTag.ToUpper().ToCharArray()
+            [System.Array]::Reverse($ca)
+            [System.Int64]$ExpressServiceCode = 0
+        
+            $i = 0
+            foreach ($c in $ca) {
+                $ExpressServiceCode += $Alphabet.IndexOf($c) * [System.Int64][System.Math]::Pow(36, $i)
+                $i += 1
+            }
+            $ExpressServiceCode
+        }
     }
     
     process {
@@ -367,16 +382,17 @@ function Get-HVHostHardware {
             $clusterName = "N/A"
         }
         $hshSysProperties = [ordered]@{
-            Name         = $sys.Name
-            Cluster      = $clusterName
-            Manufacturer = $sys.Manufacturer
-            Model        = $sys.Model
-            SerialNo     = $sn
-            Mem          = [math]::Round($sys.TotalPhysicalMemory / 1gb, 0)
-            Sockets      = $proc.Count
-            Cores        = $proc[0].NumberOfCores
-            TotProcs     = ($proc.Count) * ($proc[0].NumberOfLogicalProcessors)
-            Processor    = $proc[0].Name
+            Name               = $sys.Name
+            Cluster            = $clusterName
+            Manufacturer       = $sys.Manufacturer
+            Model              = $sys.Model
+            SerialNo           = $sn
+            ExpressServiceCode = if ($sys.Manufacturer -like "Dell*") { expressServiceCode($sn) } else { "N/A" }
+            Mem                = [math]::Round($sys.TotalPhysicalMemory / 1gb, 0)
+            Sockets            = $proc.Count
+            Cores              = $proc[0].NumberOfCores
+            TotProcs           = ($proc.Count) * ($proc[0].NumberOfLogicalProcessors)
+            Processor          = $proc[0].Name
         }
         New-Object -type PSCustomObject -Property $hshSysProperties
 
