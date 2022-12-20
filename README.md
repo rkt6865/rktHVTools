@@ -57,3 +57,7 @@ NOTE: If these are not set, they will be set automatically if/when you run the *
 - Get-HVHostNicDrivers - Retrieve the NIC driver details for each physical NIC of a Hyper-V host
 - Get-HVHostNicVMQ - Retrieve the VMQ status (enabled/disabled) of a physical NIC of a Hyper-V host
 - Get-HVNetworkVlans - Retrieve the network names and VLANs of a Hyper-V Logical Network
+- Get-HVVMTimeSynchronization - Retrieve the status of the VM Integration Services Time Synchronization Service
+- Enable-HVVMTimeSynchronization - Enable the VM Integration Services Time Synchronization Service
+- Disable-HVVMTimeSynchronization - Disable the VM Integration Services Time Synchronization Service
+  
