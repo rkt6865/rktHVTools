@@ -64,6 +64,7 @@ function Get-HVHostNicStats {
                 Cluster                  = $clusterName
                 Date                     = Get-Date -format "yyyy-MM-dd HH:mm:ss"
                 NIC                      = $nicStats.Name
+                NICDesc                  = $nic.InterfaceDescription
                 MAC                      = $nic.MacAddress
                 Connection               = $nic.MediaConnectionState
                 Status                   = $nic.Status
@@ -71,7 +72,6 @@ function Get-HVHostNicStats {
                 OutboundPacketErrors     = $nicStats.OutboundPacketErrors
                 ReceivedDiscardedPackets = $nicStats.ReceivedDiscardedPackets
                 OutboundDiscardedPackets = $nicStats.OutboundDiscardedPackets
-                Description              = $nic.InterfaceDescription
             }
             New-Object -type PSCustomObject -Property $hshNICStatsProperties
         }

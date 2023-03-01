@@ -50,17 +50,19 @@ function Get-HVCsvInfo {
         # (Get-ClusterSharedVolume -Cluster $storvols.vmhost.hostcluster | ? {$_.name -eq $storvols.volumelabel}).OwnerNode.name
 
         foreach ($storVol in $storVols) {
+            $vms = Get-HVVmsOnCsv $csvName
             $used = ($storVol.Capacity / 1GB) - ($storVol.FreeSpace / 1GB)
             $usedPct = ($used / ($storVol.Capacity / 1GB))
             $hshStorVolProps = [ordered]@{
-                Name     = $storVol.VolumeLabel
-                Cluster  = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
-                Owner    = (Get-ClusterSharedVolume -Cluster $storVol.vmhost.hostcluster | ? {$_.name -eq $storvol.volumelabel}).OwnerNode.name
-                Capacity = [math]::Round($storVol.Capacity / 1GB, 2)
-                Used     = [math]::round($used, 2)
-                Free     = [math]::Round($storVol.Freespace / 1GB, 2)
-                UsedPct  = "{0:P0}" -f [math]::round($usedPct, 2)
-                LUNId    = $storVol.StorageDisk.SMLunId
+                Name        = $storVol.VolumeLabel
+                Cluster     = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
+                Owner       = (Get-ClusterSharedVolume -Cluster $storVol.vmhost.hostcluster | ? { $_.name -eq $storvol.volumelabel }).OwnerNode.name
+                Capacity    = [math]::Round($storVol.Capacity / 1GB, 2)
+                Provisioned = ($vms | Measure-Object -Property totalgb -sum).sum
+                Used        = [math]::round($used, 2)
+                Free        = [math]::Round($storVol.Freespace / 1GB, 2)
+                UsedPct     = "{0:P0}" -f [math]::round($usedPct, 2)
+                LUNId       = $storVol.StorageDisk.SMLunId
             }
             New-Object -type PSCustomObject -Property $hshStorVolProps
         }

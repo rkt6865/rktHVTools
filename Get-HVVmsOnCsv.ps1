@@ -48,10 +48,12 @@ function Get-HVVmsOnCsv {
         }
 
         foreach ($vm in $vms) {
+            $hDisks = Get-SCVirtualHardDisk -VM $vm
             $hshVMProps = [ordered]@{
                 Name     = $vm.Name
-                RAM      = [math]::Round($vm.Memory/1KB,0)
-                Size     = [math]::Round($vm.TotalSize / 1GB, 2)
+                RAM      = [math]::Round($vm.Memory / 1KB, 0)
+                UsedGB   = [math]::Round($vm.TotalSize / 1GB, 2)
+                TotalGB  = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
                 Location = $vm.Location
             }
             New-Object -type PSCustomObject -Property $hshVMProps

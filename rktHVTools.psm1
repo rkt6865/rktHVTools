@@ -623,17 +623,19 @@ function Get-HVCsvInfo {
         # (Get-ClusterSharedVolume -Cluster $storvols.vmhost.hostcluster | ? {$_.name -eq $storvols.volumelabel}).OwnerNode.name
 
         foreach ($storVol in $storVols) {
+            $vms = Get-HVVmsOnCsv $csvName
             $used = ($storVol.Capacity / 1GB) - ($storVol.FreeSpace / 1GB)
             $usedPct = ($used / ($storVol.Capacity / 1GB))
             $hshStorVolProps = [ordered]@{
-                Name     = $storVol.VolumeLabel
-                Cluster  = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
-                Owner    = (Get-ClusterSharedVolume -Cluster $storVol.vmhost.hostcluster | ? { $_.name -eq $storvol.volumelabel }).OwnerNode.name
-                Capacity = [math]::Round($storVol.Capacity / 1GB, 2)
-                Used     = [math]::round($used, 2)
-                Free     = [math]::Round($storVol.Freespace / 1GB, 2)
-                UsedPct  = "{0:P0}" -f [math]::round($usedPct, 2)
-                LUNId    = $storVol.StorageDisk.SMLunId
+                Name        = $storVol.VolumeLabel
+                Cluster     = ($storVol.VMHost.HostCluster.Name).Split(".")[0]
+                Owner       = (Get-ClusterSharedVolume -Cluster $storVol.vmhost.hostcluster | ? { $_.name -eq $storvol.volumelabel }).OwnerNode.name
+                Capacity    = [math]::Round($storVol.Capacity / 1GB, 2)
+                Provisioned = ($vms | Measure-Object -Property totalgb -sum).sum
+                Used        = [math]::round($used, 2)
+                Free        = [math]::Round($storVol.Freespace / 1GB, 2)
+                UsedPct     = "{0:P0}" -f [math]::round($usedPct, 2)
+                LUNId       = $storVol.StorageDisk.SMLunId
             }
             New-Object -type PSCustomObject -Property $hshStorVolProps
         }
@@ -683,21 +685,23 @@ function Get-HVVmsOnCsv {
             Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
             break
         }
-        $vmmServer = $Env:vmm_server
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
     }
     
     process {
-        $vms = Get-SCVirtualMachine | ? { $_.location -match $csvName } #| select name, @{N="Size";E={[math]::round(($_.TotalSize/1GB),2)}}, location | sort size -Descending
+        $vms = Get-SCVirtualMachine -VMMServer $vmmserver | ? { $_.location -match $csvName } #| select name, @{N="Size";E={[math]::round(($_.TotalSize/1GB),2)}}, location | sort size -Descending
         if (!$vms) {
             Write-Warning "There are no VMs on the CSV or there are no CSVs with that name."
             return
         }
 
         foreach ($vm in $vms) {
+            $hDisks = Get-SCVirtualHardDisk -VM $vm
             $hshVMProps = [ordered]@{
                 Name     = $vm.Name
                 RAM      = [math]::Round($vm.Memory / 1KB, 0)
-                Size     = [math]::Round($vm.TotalSize / 1GB, 2)
+                UsedGB   = [math]::Round($vm.TotalSize / 1GB, 2)
+                TotalGB  = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
                 Location = $vm.Location
             }
             New-Object -type PSCustomObject -Property $hshVMProps
@@ -1401,6 +1405,7 @@ function Get-HVHostNicStats {
                 Cluster                  = $clusterName
                 Date                     = Get-Date -format "yyyy-MM-dd HH:mm:ss"
                 NIC                      = $nicStats.Name
+                NICDesc                  = $nic.InterfaceDescription
                 MAC                      = $nic.MacAddress
                 Connection               = $nic.MediaConnectionState
                 Status                   = $nic.Status
@@ -1408,7 +1413,6 @@ function Get-HVHostNicStats {
                 OutboundPacketErrors     = $nicStats.OutboundPacketErrors
                 ReceivedDiscardedPackets = $nicStats.ReceivedDiscardedPackets
                 OutboundDiscardedPackets = $nicStats.OutboundDiscardedPackets
-                Description              = $nic.InterfaceDescription
             }
             New-Object -type PSCustomObject -Property $hshNICStatsProperties
         }
