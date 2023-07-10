@@ -53,6 +53,8 @@ function Get-HVVMInfo {
             Name     = $vm.Name
             Host     = $vm.vmhost.name.split(".")[0]
             Cluster  = $vm.vmhost.HostCluster.Name.split(".")[0]
+            Status   = $vm.Status
+            VMState  = $vm.VirtualMachineState
             CPU      = $vm.CPUCount
             MemGB    = [math]::Round($vm.Memory / 1KB, 0)
             Size     = [math]::Round($vm.TotalSize / 1GB, 2)
