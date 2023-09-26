@@ -558,8 +558,8 @@ function Get-HVWWN {
         foreach ($hba in $hbas) {
             $hshHbaProperties = [ordered]@{
                 Name        = $hba.PSComputerName
-                NodeAddress = $hba.NodeAddress
-                PortAddress = $hba.PortAddress
+                NodeAddress = $hba.NodeAddress -replace '..(?!$)','$&:'
+                PortAddress = $hba.PortAddress -replace '..(?!$)','$&:'
             }
             $hbaArr += New-Object -type PSCustomObject -Property $hshHbaProperties
         }
