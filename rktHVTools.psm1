@@ -774,6 +774,7 @@ function Get-HVVMInfo {
             MemGB    = [math]::Round($vm.Memory / 1KB, 0)
             Size     = [math]::Round($vm.TotalSize / 1GB, 2)
             HDSizeGB = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
+            BackupTag = $vm.Tag
             Location = $vm.Location
         }
         New-Object -type PSCustomObject -Property $hshVMProps
@@ -1940,6 +1941,277 @@ function Get-HVHostFCDrivers {
 
     }
     
+    end {
+    }
+}
+###################################
+###################################
+function Get-HVHostFCInfo {
+    <#
+.SYNOPSIS
+    Retrieve the FC information of a physical FC of a Hyper-V host.
+.DESCRIPTION
+    Retrieve the FC information of a physical FC of a Hyper-V host.
+.PARAMETER hostName
+    Specifies the name of the Hyper-v host. This parameter is mandatory.
+.INPUTS
+    System.String.  Get-HVHostFCInfo accepts a string as the name of the Hyper-V host.
+.OUTPUTS
+    PSCustomObject. Get-HVHostFCInfo returns the hostname, manufacturer, model, driver information.
+.EXAMPLE
+    PS C:\> Get-HVHostFCInfo <myVMHostName>
+    Retrieves the physical FC information of the Hyper-V host <myVMHostName>.
+.NOTES
+    None.
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Position = 0, 
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Please enter a host name.')
+        ]
+        [String] $hostName
+    )
+    
+    begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Host "The following Environment variable needs to be set prior to running the script:" -ForegroundColor Yellow
+            Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
+            break
+        }
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
+    }
+    
+    process {
+        $vHost = Get-SCVMHost -VMMServer $vmmserver -ComputerName $hostName -ErrorAction SilentlyContinue
+        if (!$vHost) {
+            Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
+            break
+        }
+        # Check is host is part of cluster - this avoides potential error when creating hashtable
+        if ($vhost.HostCluster) {
+            $clusterName = ($vHost.HostCluster.Name).Split(".")[0]
+        }
+        else {
+            $clusterName = "N/A"
+        }
+        $fcAdapters = Invoke-Command -ComputerName $hostName -ScriptBlock { Get-WmiObject -Class MSFC_FCAdapterHBAAttributes -Namespace root\WMI }
+        foreach ($fcAdapter in $fcAdapters) {
+
+            $hshFCProperties = [ordered]@{
+                Name             = $hostName.Split(".")[0]
+                Cluster          = $clusterName
+                Active           = $fcAdapter.Active
+                Manufacturer     = $fcAdapter.Manufacturer
+                Model            = $fcAdapter.Model
+                Modeldescription = $fcAdapter.ModelDescription
+                DriverName       = $fcAdapter.DriverName
+                DriverVersion    = $fcAdapter.DriverVersion
+            }
+            New-Object -type PSCustomObject -Property $hshFCProperties
+        }
+
+    }
+    
+    end {
+    }
+}
+###################################
+###################################
+function Move-HVVM {
+    <#
+    .SYNOPSIS
+        Migrate VM to a different host in the same cluster.
+    .DESCRIPTION
+        Migrate VM to a different host in the same cluster.
+    .PARAMETER vmName
+        Specifies the name of the VM to be migrated. This parameter is mandatory.
+    .PARAMETER vmHostName
+        Specifies the name of the host to migrate the VM to. This parameter is mandatory.
+    .INPUTS
+        System.String.  Move-HVVM accepts a strings for both paramaters.
+    .OUTPUTS
+        VirtualMachine object.
+    .EXAMPLE
+        PS C:\> Move-HVVM <vmname> <vmhostname>
+    .NOTES
+        The following Environment variable(s) must be set prior to running:
+            $Env:vmm_server = <server>
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the VM name')
+        ]
+        [String] $vmName,
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the hostname to migrate to')
+        ]
+        [String] $vmHostName
+    )
+        
+    begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Host "The following Environment variable needs to be set prior to running the script:" -ForegroundColor Yellow
+            Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
+            break
+        }
+    
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
+    }
+        
+    process {
+        $vm = Get-SCVirtualMachine $vmName
+        if (!$vm) {
+            Write-Warning "The VM, $vmName, could not be found."
+            return
+        }
+    
+        $destVmHost = Get-SCVMHost $vmHostName
+        # Verify if host is part of the same cluster
+        $currentVmHost = $vm.VMHost
+        if ($currentVmHost.name -eq $destVmHost.Name) {
+            Write-Warning "The current host, $($currentVmHost.computername), is the same as the destination host, $($destVmHost.computerName)"
+            return
+        }
+        $availHosts = $vm.VMHost.HostCluster.Nodes | select Name -ExpandProperty Name | sort
+        if ($availHosts -contains $destVmHost.Name) {
+            Write-Host "Moving VM....."
+            Move-SCVirtualMachine -VM $vm -VMHost $destVmHost
+        }
+        else {
+            Write-Error "$vmHostName does not exist in the same cluster"
+            return
+        }
+    }
+            
+    end {
+    }
+}
+###################################
+###################################
+function Add-HVClusterCSV {
+    <#
+    .SYNOPSIS
+        Add a new CSV to a cluster.
+    .DESCRIPTION
+        Add a new disk to a host and then make that disk a CSV in the cluster.
+    .PARAMETER clusterName
+        Specifies the name of the cluster where the CSV will be located. This parameter is mandatory.
+    .PARAMETER disklabel
+        Specifies the name of the new CSV. This parameter is mandatory.
+    .PARAMETER diskSerialNo
+        Specifies the UUID of the lun. Supplied by the storage group. This parameter is mandatory.
+    .INPUTS
+        System.String.  Add-HVClusterCSV accepts a strings for all paramaters.
+    .OUTPUTS
+        New CSV.
+    .EXAMPLE
+        PS C:\> Add-HVClusterCSV <clusterName> <disklabel> <diskSerialNo>
+    .NOTES
+        The following Environment variable(s) must be set prior to running:
+            $Env:vmm_server = <server>
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the cluster name:')
+        ]
+        [String] $clusterName,
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the name of the CSV:')
+        ]
+        [String] $disklabel,
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the UUID/SerialNumber of the lun/disk:')
+        ]
+        [String] $diskSerialNo
+    )
+        
+    begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Host "The following Environment variable needs to be set prior to running the script:" -ForegroundColor Yellow
+            Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
+            break
+        }
+    
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
+    }
+        
+    process {
+        $vhostname = Get-SCVMHostCluster $clusterName | Get-SCVMHost | select computername -ExpandProperty computername | Get-Random
+        # Script block to add and configure a new disk on remote host(s)  -- Think "Disk Manager" on the host
+        $remoteDiskblock = {
+            $newdisk = Get-Disk | ? { ($_.PartitionStyle -eq "RAW") -and ($_.SerialNumber -eq $using:diskSerialNo) }
+            if (!($newdisk)) {
+                Write-Host "That disk does not exist. Please verify the VMM you're connected to and that the cluster and disk serial number are correct." -ForegroundColor Yellow
+                return 1
+                Exit
+            }
+            $diskNum = $newdisk.Number
+            # Online the disk
+            if ($newdisk.IsOffline) {
+                Set-Disk -Number $diskNum -IsOffline $false
+            }
+            # Initialize and format the disk
+            $d1 = Get-Disk -Number $diskNum | `
+                Initialize-Disk -PartitionStyle GPT -PassThru | `
+                New-Partition -AssignDriveLetter -UseMaximumSize 
+        
+            Format-Volume -DriveLetter $d1.Driveletter -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction SilentlyContinue
+        }
+        
+        $diskRslt = Invoke-Command -ComputerName $vHostName -ScriptBlock $remoteDiskblock
+        if ($diskRslt -eq 1) {return}
+        
+        #####################################################################
+        
+        # Script block to add a new disk to the cluster and CSV -- Think "Failover CLuster Manager" on the host
+        $remoteCSVblock = {
+            $availDisk = Get-ClusterAvailableDisk
+            $availDiskName = $availDisk.name
+            $availDisk | Add-ClusterDisk
+            Add-ClusterSharedVolume -Name $availDiskName
+
+            # Rename the CSV from "Cluster Disk 1" to it's proper name    
+            (Get-ClusterSharedVolume -Name $availDiskName).Name = $using:diskLabel
+            Get-ClusterSharedVolume -Name $using:diskLabel | ft -AutoSize # Display to user
+
+            # Rename directory in cluster shared storage directory from "Volume1" to it's proper name
+            $csv = Get-ClusterSharedVolume -Name $using:diskLabel
+            $volName = ($csv.SharedVolumeInfo[0].FriendlyVolumeName).Split("\")[-1]
+            $parentPath = Split-Path -Parent $csv.SharedVolumeInfo[0].FriendlyVolumeName
+        
+            Get-ChildItem -Path $parentPath -Directory | `
+                ForEach-Object {
+                if ($_.Name -match $volName) {
+                    Rename-Item -Path $_.FullName -NewName ($_.Name -replace $volName, $using:diskLabel)
+                }
+            }
+            Get-ChildItem -Path $parentPath -Directory | ?{$_.name -eq $using:diskLabel} | ft -AutoSize # Display to user
+        }
+        
+        Invoke-Command -ComputerName $vHostName -ScriptBlock $remoteCSVblock
+    }
+            
     end {
     }
 }
