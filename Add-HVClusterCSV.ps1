@@ -56,14 +56,22 @@ function Add-HVClusterCSV {
     }
         
     process {
-        $vhostname = Get-SCVMHostCluster $clusterName | Get-SCVMHost | select computername -ExpandProperty computername | Get-Random
+        # Validate Cluster
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction SilentlyContinue
+        if (!$clstr) {
+            Write-Warning "The cluster, $clusterName, could not found. Please verify the VMM you're connected to and the cluster name."
+            return
+        }
+        $vhostname = $clstr | Get-SCVMHost | select computername -ExpandProperty computername | Get-Random
         # Script block to add and configure a new disk on remote host(s)  -- Think "Disk Manager" on the host
         $remoteDiskblock = {
+            Write-Host "Adding, initializing, and formatting disk..." -ForegroundColor Yellow
             $newdisk = Get-Disk | ? { ($_.PartitionStyle -eq "RAW") -and ($_.SerialNumber -eq $using:diskSerialNo) }
-            if (!($newdisk)) {
-                Write-Host "That disk does not exist. Please verify the VMM you're connected to and that the cluster and disk serial number are correct." -ForegroundColor Yellow
-                return 1
-                Exit
+            if (! $newdisk) {
+                Write-Host "That disk does not exist. Please verify that the cluster and disk serial number are correct." -ForegroundColor Yellow
+                $retVal = 1
+                return $retVal
+                #Exit
             }
             $diskNum = $newdisk.Number
             # Online the disk
@@ -71,28 +79,46 @@ function Add-HVClusterCSV {
                 Set-Disk -Number $diskNum -IsOffline $false
             }
             # Initialize and format the disk
-            $d1 = Get-Disk -Number $diskNum | `
-                Initialize-Disk -PartitionStyle GPT -PassThru | `
-                New-Partition -AssignDriveLetter -UseMaximumSize 
+            try {
+                $d1 = Get-Disk -Number $diskNum -ErrorAction Stop | `
+                    Initialize-Disk -PartitionStyle GPT -PassThru -ErrorAction Stop | `
+                    New-Partition -AssignDriveLetter -UseMaximumSize -ErrorAction Stop
         
-            Format-Volume -DriveLetter $d1.Driveletter -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction SilentlyContinue
+                Format-Volume -DriveLetter $d1.Driveletter -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction Stop | Out-Null
+                
+            }
+            catch {
+                Write-Host "The following error occurred:" -ForegroundColor Yellow
+                return $_
+            }
+        
         }
         
         $diskRslt = Invoke-Command -ComputerName $vHostName -ScriptBlock $remoteDiskblock
-        if ($diskRslt -eq 1) {return}
-        
+        if ($diskRslt) {
+            $diskRslt
+            return
+        }
+
         #####################################################################
         
         # Script block to add a new disk to the cluster and CSV -- Think "Failover CLuster Manager" on the host
         $remoteCSVblock = {
-            $availDisk = Get-ClusterAvailableDisk
-            $availDiskName = $availDisk.name
-            $availDisk | Add-ClusterDisk
-            Add-ClusterSharedVolume -Name $availDiskName
+            Write-Host "Make disk a CSV and rename cluster shared storage..." -ForegroundColor Yellow
+            try {
+                $availDisk = Get-ClusterAvailableDisk -ErrorAction Stop
+                $availDiskName = $availDisk.name
+                $availDisk | Add-ClusterDisk -ErrorAction Stop | Out-Null  # ft -AutoSize
+                Add-ClusterSharedVolume -Name $availDiskName -ErrorAction Stop | Out-Null
+            }
+            catch {
+                Write-Host "The following error occurred:" -ForegroundColor Yellow
+                return $_
+            }
 
             # Rename the CSV from "Cluster Disk 1" to it's proper name    
             (Get-ClusterSharedVolume -Name $availDiskName).Name = $using:diskLabel
-            Get-ClusterSharedVolume -Name $using:diskLabel | ft -AutoSize # Display to user
+            # Get-ClusterSharedVolume -Name $using:diskLabel | ft -AutoSize # Display to user
 
             # Rename directory in cluster shared storage directory from "Volume1" to it's proper name
             $csv = Get-ClusterSharedVolume -Name $using:diskLabel
@@ -105,10 +131,15 @@ function Add-HVClusterCSV {
                     Rename-Item -Path $_.FullName -NewName ($_.Name -replace $volName, $using:diskLabel)
                 }
             }
-            Get-ChildItem -Path $parentPath -Directory | ?{$_.name -eq $using:diskLabel} | ft -AutoSize # Display to user
+            Get-ChildItem -Path $parentPath -Directory | ? { $_.name -eq $using:diskLabel } | ft -AutoSize # Display to user
         }
         
-        Invoke-Command -ComputerName $vHostName -ScriptBlock $remoteCSVblock
+        $csvRslt = Invoke-Command -ComputerName $vHostName -ScriptBlock $remoteCSVblock
+        if ($csvRslt) {
+            $csvRslt
+            return
+        }
+
     }
             
     end {
