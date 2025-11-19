@@ -52,6 +52,7 @@ function Get-HVVMTimeSynchronization {
         $timesync = Get-VMIntegrationService -CimSession $cimsession -VMName $vm.Name | ? { $_.name -eq "Time Synchronization" }
         $hshTimeSyncProps = [ordered]@{
             VMName  = $vm.Name
+            OS      = $vm.OperatingSystem
             Name    = $timesync.Name
             Enabled = $timesync.Enabled
         }

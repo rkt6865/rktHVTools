@@ -57,8 +57,8 @@ function Get-HVVMInfo {
             VMState   = $vm.VirtualMachineState
             CPU       = $vm.CPUCount
             MemGB     = [math]::Round($vm.Memory / 1KB, 0)
-            Size      = [math]::Round($vm.TotalSize / 1GB, 2)
             HDSizeGB  = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
+            OS        = $vm.OperatingSystem
             BackupTag = $vm.Tag
             Location  = $vm.Location
         }

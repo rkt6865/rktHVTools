@@ -80,11 +80,10 @@ function Add-HVClusterCSV {
             }
             # Initialize and format the disk
             try {
-                $d1 = Get-Disk -Number $diskNum -ErrorAction Stop | `
+                Get-Disk -Number $diskNum -ErrorAction Stop | `
                     Initialize-Disk -PartitionStyle GPT -PassThru -ErrorAction Stop | `
-                    New-Partition -AssignDriveLetter -UseMaximumSize -ErrorAction Stop
-        
-                Format-Volume -DriveLetter $d1.Driveletter -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction Stop | Out-Null
+                    New-Partition -AssignDriveLetter -UseMaximumSize -ErrorAction Stop | `
+                    Format-Volume -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction Stop | Out-Null
                 
             }
             catch {

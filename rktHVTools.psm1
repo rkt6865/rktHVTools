@@ -765,17 +765,17 @@ function Get-HVVMInfo {
         #foreach ($vm in $vms) {
         $hDisks = Get-SCVirtualHardDisk -VM $vm
         $hshVMProps = [ordered]@{
-            Name     = $vm.Name
-            Host     = $vm.vmhost.name.split(".")[0]
-            Cluster  = $vm.vmhost.HostCluster.Name.split(".")[0]
-            Status   = $vm.Status
-            VMState  = $vm.VirtualMachineState
-            CPU      = $vm.CPUCount
-            MemGB    = [math]::Round($vm.Memory / 1KB, 0)
-            Size     = [math]::Round($vm.TotalSize / 1GB, 2)
-            HDSizeGB = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
+            Name      = $vm.Name
+            Host      = $vm.vmhost.name.split(".")[0]
+            Cluster   = $vm.vmhost.HostCluster.Name.split(".")[0]
+            Status    = $vm.Status
+            VMState   = $vm.VirtualMachineState
+            CPU       = $vm.CPUCount
+            MemGB     = [math]::Round($vm.Memory / 1KB, 0)
+            HDSizeGB  = [math]::Round((($hDisks | Measure-Object -Property MaximumSize -Sum).sum) / 1GB, 2)
+            OS        = $vm.OperatingSystem
             BackupTag = $vm.Tag
-            Location = $vm.Location
+            Location  = $vm.Location
         }
         New-Object -type PSCustomObject -Property $hshVMProps
         #}
@@ -1711,6 +1711,7 @@ function Get-HVVMTimeSynchronization {
         $timesync = Get-VMIntegrationService -CimSession $cimsession -VMName $vm.Name | ? { $_.name -eq "Time Synchronization" }
         $hshTimeSyncProps = [ordered]@{
             VMName  = $vm.Name
+            OS      = $vm.OperatingSystem
             Name    = $timesync.Name
             Enabled = $timesync.Enabled
         }
@@ -2181,11 +2182,10 @@ function Add-HVClusterCSV {
             }
             # Initialize and format the disk
             try {
-                $d1 = Get-Disk -Number $diskNum -ErrorAction Stop | `
+                Get-Disk -Number $diskNum -ErrorAction Stop | `
                     Initialize-Disk -PartitionStyle GPT -PassThru -ErrorAction Stop | `
-                    New-Partition -AssignDriveLetter -UseMaximumSize -ErrorAction Stop
-        
-                Format-Volume -DriveLetter $d1.Driveletter -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction Stop | Out-Null
+                    New-Partition -AssignDriveLetter -UseMaximumSize -ErrorAction Stop | `
+                    Format-Volume -FileSystem NTFS -NewFileSystemLabel $using:diskLabel -AllocationUnitSize 65536 -Confirm:$false -ErrorAction Stop | Out-Null
                 
             }
             catch {
@@ -2241,6 +2241,215 @@ function Add-HVClusterCSV {
             return
         }
 
+    }
+            
+    end {
+    }
+}
+###################################
+###################################
+function Get-HVHostVirtualNetAdapters {
+    <#
+.SYNOPSIS
+    Retrieve Virtual Network information of a Hyper-V host.
+.DESCRIPTION
+    Retrieve Virtual Network information of a Hyper-V host.
+.PARAMETER hostName
+    Specifies the name of the Hyper-v host. This parameter is mandatory.
+.INPUTS
+    System.String.  Get-HVHostVirtualNetAdapters accepts a string as the name of the Hyper-V host.
+.OUTPUTS
+    PSCustomObject. Get-HVHostVirtualNetAdapters returns the hostname, Virtual Network, IP.
+.EXAMPLE
+    PS C:\> Get-HVHostVirtualNetAdapters <myVMHostName>
+    Retrieves the physical NIC information of the Hyper-V host <myVMHostName>.
+.NOTES
+    None.
+#>
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Position = 0, 
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Please enter a host name.')
+        ]
+        [String] $hostName
+    )
+    
+    begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Host "The following Environment variable needs to be set prior to running the script:" -ForegroundColor Yellow
+            Write-Host "`$Env:vmm_server = <vmm server>" -ForegroundColor Yellow
+            break
+        }
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
+    }
+    
+    process {
+        $vHost = Get-SCVMHost $hostName
+        if (!$vHost) {
+            Write-Warning "There was an issue. Please verify that the hostname, $hostname, is correct."
+            break
+        }
+        $vnics = Get-SCVirtualNetworkAdapter -VMHost $vHost
+        foreach ($vnic in $vnics) {
+            $hshVnicProperties = [ordered]@{
+                Name           = $vHost.ComputerName
+                vNetwork       = $vnic.Name
+                LogicalSwitch  = $vnic.LogicalSwitch
+                VirtaulNetwork = $vnic.VirtualNetwork
+                LogicalNetwork = $vnic.LogicalNetwork
+                VMNetwork      = $vnic.VMNetwork
+                VMSubnet       = $vnic.VMSubnet
+                PortProfile    = $vnic.PortClassification
+                IPAddress      = [system.version]$vnic.ipv4addresses[0]
+            }
+            New-Object -type PSCustomObject -Property $hshVnicProperties
+
+
+        }
+    }
+    
+    end {
+    }
+}
+###################################
+###################################
+function Expand-HVCSV {
+    <#
+    .SYNOPSIS
+        Expand an existing cluster CSV to a larger size.
+    .DESCRIPTION
+        Expand an existing cluster CSV to a larger size.
+    .PARAMETER clusterName
+        Specifies the name of the cluster where the CSV is located. This parameter is mandatory.
+    .PARAMETER csvName
+        Specifies the name of the CSV. This parameter is mandatory.
+    .INPUTS
+        System.String.  Expand-HVCSV accepts a strings for all paramaters.
+    .OUTPUTS
+        New CSV.
+    .EXAMPLE
+        PS C:\> Expand-HVCSV <clusterName> <csvName>
+    .NOTES
+        The following Environment variable(s) must be set prior to running:
+            $Env:vmm_server = <server>
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the cluster name:')
+        ]
+        [String] $clusterName,
+        [Parameter(
+            Mandatory = $true, 
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            HelpMessage = 'Enter the name of the CSV:')
+        ]
+        [String] $csvName
+    )
+        
+    begin {
+        if (!(Test-Path Env:\vmm_server)) {
+            Write-Warning "The following Environment variable needs to be set prior to running the script:"
+            Write-Warning "`$Env:vmm_server = <vmm server>"
+            break
+        }
+    
+        $vmmserver = Get-SCVMMServer $Env:vmm_server
+    }
+        
+    process {
+        # Check if Powershell 'FailoverClusters' module is present
+        If (!(Get-Module FailoverClusters)) { 
+            Write-Warning "Please install the Powershell 'FailoverClusters' first."
+            return
+        }
+
+        # Validate Cluster
+        $clstr = Get-SCVMHostCluster -VMMServer $vmmserver -Name $clusterName -ErrorAction SilentlyContinue
+        if (!$clstr) {
+            Write-Warning "The cluster, $clusterName, could not found. Please verify the VMM you're connected to and the cluster name."
+            return
+        }
+        
+        # Get the CSV
+        $csv = Get-ClusterSharedVolume -Cluster $clusterName -Name $csvName -ErrorAction SilentlyContinue
+        if (!$csv) {
+            Write-Warning "The CSV, '$($csvName)' was not found in cluster '$($clusterName)'"
+            return
+        }
+        
+        $csvOwner = $csv.OwnerNode.name
+        $csvId = $csv.Id
+        
+        # Create a remote session to the host of the CSV owner
+        $session = New-PSSession -ComputerName $csvOwner
+
+        # Script block to gather CSV and Disk information
+        $remoteCsvBlock = {
+            # Rescan the storage
+            Write-Host "Rescanning host storage..."
+            #Update-HostStorageCache
+            try {
+                # Get the Disk ID of the CSV corresponding LUN
+                $csvDiskId = (Get-ItemProperty "HKLM:\Cluster\Resources\$Using:csvId\Parameters").DiskIdGuid
+                # Get the disk
+                $physicalDisk = Get-Disk -ErrorAction Stop | ? { $_.Guid -eq $csvDiskId }
+                if ($physicalDisk.count -gt 1) {
+                    Write-Error "Please verify the physical disk.  There are multiple disks with the same GUID."
+                    return
+                }
+                # Get the partition from the disk
+                $partition = Get-Partition -Disk $physicaldisk -ErrorAction Stop | ? { $_.Type -ne 'Reserved' }
+                #$partitionSize = $partition.Size
+                $dPartitionSize = [math]::Round($partition.Size / 1GB, 2)
+                # Get the largest possible size of the partion
+                $partitionMaxSize = (Get-PartitionSupportedSize -DiskNumber $physicalDisk.Number -PartitionNumber $partition.PartitionNumber -ErrorAction Stop).SizeMax
+                $dpartitionMaxSize = [math]::Round($partitionMaxSize / 1GB, 2)
+            }
+            catch {
+                Write-Error "The following error occurred:"
+                return $_
+            }
+
+            # Check if disk can be Expanded
+            if ($dpartitionMaxSize -gt $dPartitionSize) {
+                Write-Host "$($Using:csvName) will be Expanded from $($dPartitionSize) to $($dpartitionMaxSize)"
+                Try {
+                    # Attempt to Expand disk
+                    Resize-Partition -DiskNumber $physicalDisk.Number -PartitionNumber $partition.PartitionNumber -Size $partitionMaxSize -ErrorAction Stop -ErrorVariable EXTENDERR
+                }
+                Catch {
+                    Write-Warning "Invalid Size or no free space to Expand the volume"
+                    return
+                }
+                If (!$EXTENDERR) { 
+                    Write-Output "Cluster Shared Volume: $($Using:csvName) on Cluster: $($Using:clustername) has been successfully Expanded to $($dpartitionMaxSize)" }
+                    return
+            }
+            else {
+                Write-Error "There is no free space available to Expand $($Using:csvName)."
+                return
+            }
+        }
+        
+        $csvRslt = Invoke-Command -Session $session -ScriptBlock $remoteCsvBlock
+        if ($csvRslt) {
+            $csvRslt
+            return
+        }
+
+        # Exit remote pssession
+        Remove-PSSession $session
+        # Refresh VMM cluster to reflect changes
+        Read-SCVMHostCluster -VMHostCluster $clstr
     }
             
     end {

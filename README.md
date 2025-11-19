@@ -36,28 +36,32 @@ NOTE: If these are not set, they will be set automatically if/when you run the *
 
 ## List of functions
 
+- Add-HVClusterCSV - Add a new CSV to a cluster
 - Connect-VMMServer - Connects to a user specified SC VMM Server
+- Disable-HVVMTimeSynchronization - Disable the VM Integration Services Time Synchronization Service
+- Enable-HVVMTimeSynchronization - Enable the VM Integration Services Time Synchronization Service
 - Get-HVClusterInfo - Retrieve memory and CPU infromation for each host in a cluster
 - Get-HVCsvClusterInfo - Retrieve basic information for all of the CSVs in a Hyper-V compute cluster
-- Get-HVHarddiskinfo - Retrieve hard disk information for each hard disk of a VM
-- Get-HVHostHardware - Retrieve manufacturer, model, memory, and CPUs for a physical Hyper-V host
-- Get-HVLldpInfo - Retrieve physical switch/port information for each interface of a Hyper-V host
-- Get-HVWWN - Retrieve WWN information for each HBA of a Hyper-V host
-- Get-HVCsvInfo - Retrieve basic information for a specific CSVs anywhere within the VMM
-- Get-HVVmsOnCsv - Retrieve VMs located on a specific CSV
-- Get-HVVMInfo - Retrieve basic VM resource information (CPUs, Memory, HD size)
-- Get-HVHostNicInfo - Retrieve physical NIC information of a Hyper-V Host
 - Get-HVClusterVMs - Retrieve all VMs in a particular cluster
-- Get-HVHostLldpinfo - Retrieve physical switch/port/(faster)connection status information for each interface of a Hyper-V host
-- Get-HVHostStoragePaths - Retrieve available storage paths for each CSV of a Hyper-V host
-- Get-HVHostStoragePathTotals - Retrieve the total number of storage devices and paths of a Hyper-V host
+- Get-HVCsvInfo - Retrieve basic information for a specific CSVs anywhere within the VMM
+- Get-HVHarddiskinfo - Retrieve hard disk information for each hard disk of a VM
+- Get-HVHostFCDrivers - Retrieve the FC driver information of a physical FC of a Hyper-V host
+- Get-HVHostFCInfo - Retrieve the FC information of a physical FC of a Hyper-V host
+- Get-HVHostHardware - Retrieve manufacturer, model, memory, and CPUs for a physical Hyper-V host
 - Get-HVHostLastBootUpTime - Retrieve the time a Hyper-V host last rebooted
+- Get-HVHostLldpinfo - Retrieve physical switch/port/(faster)connection status information for each interface of a Hyper-V host
 - Get-HVHostMPIOSettings - Retrieve the MPIO settings of a Hyper-V host
-- Get-HVHostNicStats - Retrieve the network packet errors/discards for each physical NIC of a Hyper-V host
 - Get-HVHostNicDrivers - Retrieve the NIC driver details for each physical NIC of a Hyper-V host
+- Get-HVHostNicInfo - Retrieve physical NIC information of a Hyper-V Host
+- Get-HVHostNicStats - Retrieve the network packet errors/discards for each physical NIC of a Hyper-V host
 - Get-HVHostNicVMQ - Retrieve the VMQ status (enabled/disabled) of a physical NIC of a Hyper-V host
+- Get-HVHostStoragePathTotals - Retrieve the total number of storage devices and paths of a Hyper-V host
+- Get-HVHostStoragePaths - Retrieve available storage paths for each CSV of a Hyper-V host
+- Get-HVHostVirtualNetAdapters - Retrieve Virtual Network information of a Hyper-V host
+- Get-HVLldpInfo - Retrieve physical switch/port information for each interface of a Hyper-V host
 - Get-HVNetworkVlans - Retrieve the network names and VLANs of a Hyper-V Logical Network
+- Get-HVVMInfo - Retrieve basic VM resource information (CPUs, Memory, HD size)
 - Get-HVVMTimeSynchronization - Retrieve the status of the VM Integration Services Time Synchronization Service
-- Enable-HVVMTimeSynchronization - Enable the VM Integration Services Time Synchronization Service
-- Disable-HVVMTimeSynchronization - Disable the VM Integration Services Time Synchronization Service
+- Get-HVVmsOnCsv - Retrieve VMs located on a specific CSV
+- Get-HVWWN - Retrieve WWN information for each HBA of a Hyper-V host
   
